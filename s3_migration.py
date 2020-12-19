@@ -18,7 +18,6 @@ s3_client = session.client('s3')
 old_bucket=s3.Bucket(old_bucket_name)
 new_bucket=s3.Bucket(new_bucket_name)
 
-
 def copy(obj):
     if obj.key != old_suffix+'/':
         print("-------Copying " + obj.key + "-------")
@@ -56,6 +55,24 @@ def uploadFile(obj):
     else:
         return copy(obj)
 
+# def updateDatabase(obj):
+
+
+def deleteObjects(obj):
+    tagCheck = s3_client.get_object_tagging(
+        Bucket=old_bucket_name,
+        Key=obj.key,
+    )
+    if tagCheck['TagSet'][0]['Value'] == 'True':
+        if tagCheck['TagSet'][1]['Value'] == 'True':
+            if obj.key != old_suffix+'/':
+                s3_client.delete_object(
+                Bucket=old_bucket_name,
+                Key=obj.key,
+                )
 
 for obj in old_bucket.objects.filter(Prefix=old_suffix):
     uploadFile(obj)
+
+for obj in old_bucket.objects.filter(Prefix=old_suffix):
+    deleteObjects(obj)
