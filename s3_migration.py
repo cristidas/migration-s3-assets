@@ -7,13 +7,13 @@ import os
 from concurrent import futures
 import faulthandler; faulthandler.enable()
 
-db_host = "127.0.0.1"
+db_host = os.getenv("DB_HOST")
 db_port = 3306
-db_user = "root"
-db_password = "secret"
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
 db_name = "frontend"
 
-
+aws_profile_name = "default"
 old_bucket_name = "cd-old-bucket"
 new_bucket_name = "cd-new-bucket"
 old_suffix = "legacy-url"
@@ -22,6 +22,7 @@ new_suffix = "modern-url"
 session = boto3.Session(
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
     aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
+    profile_name=aws_profile_name
 )
 
 s3 = session.resource('s3')
