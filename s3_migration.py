@@ -136,7 +136,19 @@ def deleteObjects(obj):
                 )
 
 
-for obj in old_bucket.objects.filter(Prefix=old_suffix):
-    uploadFile(obj)
-    updateDatabase(obj)
-    deleteObjects(obj)
+with futures.ThreadPoolExecutor() as executor:
+    print("###########  COPYING OBJECTS  ###########")
+    futures.wait(
+        [executor.submit(uploadFile, obj) for obj in old_bucket.objects.filter(Prefix=old_suffix)],
+        return_when=futures.FIRST_EXCEPTION,
+    )
+    print("###########  UPDATING DATABASE  ###########")
+    futures.wait(
+        [executor.submit(updateDatabase, obj) for obj in old_bucket.objects.filter(Prefix=old_suffix)],
+        return_when=futures.FIRST_EXCEPTION,
+    )
+    print("###########  DELETING OBJECTS  ###########")
+    futures.wait(
+        [executor.submit(deleteObjects, obj) for obj in old_bucket.objects.filter(Prefix=old_suffix)],
+        return_when=futures.FIRST_EXCEPTION,
+    )
