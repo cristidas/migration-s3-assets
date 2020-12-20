@@ -135,4 +135,4 @@ for obj in old_bucket.objects.filter(Prefix=old_suffix):
     deleteObjects(obj)
 
 for obj in old_bucket.objects.filter(Prefix=old_suffix):
-    updateDatabase()
+    updateDatabase(obj)
