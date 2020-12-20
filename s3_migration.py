@@ -30,6 +30,7 @@ old_bucket=s3.Bucket(old_bucket_name)
 new_bucket=s3.Bucket(new_bucket_name)
 
 def copy(obj):
+    '''Objects for copping and putting tags'''
     if obj.key != old_suffix+'/':
         print("-------Copying " + obj.key + "-------")
     old_source = {
@@ -58,6 +59,7 @@ def copy(obj):
     return True
 
 def uploadFile(obj):
+    '''Check tag value and copy file to new s3 bucket'''
     tagCheck = s3_client.get_object_tagging(
         Bucket=old_bucket_name,
         Key=obj.key,
@@ -71,6 +73,7 @@ def uploadFile(obj):
         return copy(obj)
 
 def updateDatabase(obj):
+    '''Update the database entries for the moved objects'''
     try:
         conn = mariadb.connect(
             user=db_user,
@@ -122,6 +125,7 @@ def updateDatabase(obj):
 
 
 def deleteObjects(obj):
+    '''Delete objects from old s3 bucket if they were successfully moved'''
     tagCheck = s3_client.get_object_tagging(
         Bucket=old_bucket_name,
         Key=obj.key,
@@ -138,6 +142,9 @@ def deleteObjects(obj):
 
 with futures.ThreadPoolExecutor() as executor:
     print("###########  COPYING OBJECTS  ###########")
+    print("\n>>>>> Source S3 Bucket: " + old_bucket_name)
+    size = sum(1 for _ in old_bucket.objects.filter(Prefix=old_suffix))
+    print("\n>>>>> Total Matching Objects Found: " + str(size-1) + "\n")
     futures.wait(
         [executor.submit(uploadFile, obj) for obj in old_bucket.objects.filter(Prefix=old_suffix)],
         return_when=futures.FIRST_EXCEPTION,
