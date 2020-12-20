@@ -1,7 +1,18 @@
 #!/usr/bin/python3
 
 import boto3
+import mariadb
+import sys
 import os
+from concurrent import futures
+import faulthandler; faulthandler.enable()
+
+db_host = "127.0.0.1"
+db_port = 3306
+db_user = "root"
+db_password = "secret"
+db_name = "frontend"
+
 
 old_bucket_name = "cd-old-bucket"
 new_bucket_name = "cd-new-bucket"
@@ -55,7 +66,51 @@ def uploadFile(obj):
     else:
         return copy(obj)
 
-# def updateDatabase(obj):
+def updateDatabase(obj):
+    try:
+        conn = mariadb.connect(
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+            database=db_name
+        )
+    except mariadb.Error as e:
+        print(f"Error connecting to the database: {e}")
+        sys.exit(1)
+    cur = conn.cursor()
+    tagCheck = s3_client.get_object_tagging(
+        Bucket=old_bucket_name,
+        Key=obj.key,
+    )
+    if tagCheck['TagSet'][0]['Value'] == 'True':
+        if tagCheck['TagSet'][1]['Value'] == 'False':
+            if obj.key != old_suffix+'/':
+                print("-------Updating database url " + obj.key + "-------")
+            query = 'UPDATE frontend.images set base_url = "'+new_bucket_name+'" , url=REPLACE (url, "'+old_suffix+'", "'+new_suffix+'") where url like "%'+obj.key.split("/", 1)[-1]+'%";'
+            try:
+                cur.execute(query)
+                conn.commit()
+                conn.close()
+                tag = s3_client.put_object_tagging(
+                    Bucket = old_bucket_name,
+                    Key = obj.key,
+                    Tagging = {
+                        'TagSet':[
+                            {
+                                'Key' : 'Copied',
+                                'Value': 'True'
+                            },
+                        ]
+                    }
+                )
+                return True
+            except mariadb.Error as e:
+                print(f"Error: {e}")
+                return False
+        else:
+            if obj.key != old_suffix+'/':
+                print("-------Skipping database url (Already Updated) " + obj.key + "-------")
 
 
 def deleteObjects(obj):
@@ -66,13 +121,18 @@ def deleteObjects(obj):
     if tagCheck['TagSet'][0]['Value'] == 'True':
         if tagCheck['TagSet'][1]['Value'] == 'True':
             if obj.key != old_suffix+'/':
+                print("-------Deleting Object " + obj.key + "-------")
                 s3_client.delete_object(
                 Bucket=old_bucket_name,
                 Key=obj.key,
                 )
+
 
 for obj in old_bucket.objects.filter(Prefix=old_suffix):
     uploadFile(obj)
 
 for obj in old_bucket.objects.filter(Prefix=old_suffix):
     deleteObjects(obj)
+
+for obj in old_bucket.objects.filter(Prefix=old_suffix):
+    updateDatabase()
