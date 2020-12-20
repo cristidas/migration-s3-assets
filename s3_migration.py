@@ -47,7 +47,11 @@ def copy(obj):
                 {
                     'Key' : 'Copied',
                     'Value': 'True'
-                }
+                },
+                {
+                    'Key' : 'Database_updated',
+                    'Value': 'False'
+                },
             ]
         }
     )
@@ -101,6 +105,10 @@ def updateDatabase(obj):
                                 'Key' : 'Copied',
                                 'Value': 'True'
                             },
+                            {
+                                'Key' : 'Database_updated',
+                                'Value': 'True'
+                            },
                         ]
                     }
                 )
@@ -119,12 +127,13 @@ def deleteObjects(obj):
         Key=obj.key,
     )
     if tagCheck['TagSet'][0]['Value'] == 'True':
-        if obj.key != old_suffix+'/':
-            print("-------Deleting Object " + obj.key + "-------")
-            s3_client.delete_object(
-            Bucket=old_bucket_name,
-            Key=obj.key,
-            )
+        if tagCheck['TagSet'][1]['Value'] == 'True':
+            if obj.key != old_suffix+'/':
+                print("-------Deleting Object " + obj.key + "-------")
+                s3_client.delete_object(
+                Bucket=old_bucket_name,
+                Key=obj.key,
+                )
 
 
 for obj in old_bucket.objects.filter(Prefix=old_suffix):
