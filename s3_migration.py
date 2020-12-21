@@ -7,6 +7,10 @@ import os
 from concurrent import futures
 import faulthandler; faulthandler.enable()
 
+# The MariaDB user that is used by this script, below, needs these permissions:
+# SELECT, UPDATE
+# for the table frontend.images
+
 db_host = os.getenv("DB_HOST")
 db_port = 3306
 db_user = os.getenv("DB_USER")
@@ -18,6 +22,10 @@ old_bucket_name = "cd-old-bucket"
 new_bucket_name = "cd-new-bucket"
 old_suffix = "legacy-url"
 new_suffix = "modern-url"
+
+# The AWS user that is used by this script, below, needs these permissions:
+# s3:PutObjectAcl, s3:ListBucket, s3:GetObject, s3:GetObjectTagging,
+# s3:PutObject, s3:PutObjectTagging, s3:DeleteObject
 
 session = boto3.Session(
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
